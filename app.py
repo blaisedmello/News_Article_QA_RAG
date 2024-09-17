@@ -4,7 +4,7 @@ import chromadb
 from openai import OpenAI
 from chromadb.utils import embedding_functions
 
-# load environment variables from .env file
+# Load environment variables from .env file
 load_dotenv()
 
 openai_key = os.getenv("OPENAI_API_KEY")
@@ -14,7 +14,7 @@ openai_ef = embedding_functions.OpenAIEmbeddingFunction(
     model_name ="text-embedding-3-small"
 )
 
-# initialize chroma client for persistent vector storage
+# Initialize chroma client for persistent vector storage
 chroma_client = chromadb.PersistentClient(path="chroma_persistent_storage")
 collection_name = "document_qa_collection"
 collection = chroma_client.get_or_create_collection(name = collection_name, embedding_function = openai_ef)
@@ -29,7 +29,7 @@ Client = OpenAI(api_key=openai_key)
 #    ]
 #)
 
-# load the text files. read, store and return them as a structured format
+# Load the text files. read, store and return them as a structured format
 def load_documents_from_directory(directory_path):
     print("=== Loading documents from directory ===")
     documents = []
@@ -50,3 +50,18 @@ def split_text(text, chunk_size = 1000, chunk_overlap = 20):
         start = end - chunk_overlap
     return chunks
     
+# Load documents from the directory
+directory_path = "./news_articles"
+documents = load_documents_from_directory(directory_path)
+
+print(f"Loaded {len(documents)} documents")
+
+# Split documents into chunks
+chunked_documents = []
+for doc in documents:
+     chunks = split_text(doc["text"])
+     print("=== Splitting documents into chunks ===")
+     for i, chunk in enumerate(chunks):
+          chunked_documents.append({"id": f"{doc['id']}_chunk{i+1}", "text": chunk})
+
+print(f"Split document into {len(chunked_documents)} chunks")
