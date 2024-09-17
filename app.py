@@ -19,7 +19,7 @@ chroma_client = chromadb.PersistentClient(path="chroma_persistent_storage")
 collection_name = "document_qa_collection"
 collection = chroma_client.get_or_create_collection(name = collection_name, embedding_function = openai_ef)
 
-Client = OpenAI(api_key=openai_key)
+client = OpenAI(api_key=openai_key)
 
 #resp = Client.chat.completions.create(
 #    model = "gpt-3.5-turbo",
@@ -64,4 +64,16 @@ for doc in documents:
      for i, chunk in enumerate(chunks):
           chunked_documents.append({"id": f"{doc['id']}_chunk{i+1}", "text": chunk})
 
-print(f"Split document into {len(chunked_documents)} chunks")
+#print(f"Split document into {len(chunked_documents)} chunks")
+          
+# Function to generate embeddings using OpenAI
+def generate_embeddings(text):
+     response = client.embeddings.create(input = text, model = "text-embedding-3-small")
+     embedding = response.data[0].embedding
+     return embedding
+
+for doc in chunked_documents:
+     print("=== Generating Embeddings... ===")
+     doc["embedding"] = generate_embeddings(doc["text"])
+
+print(doc["embedding"])
