@@ -63,8 +63,7 @@ for doc in documents:
      print("=== Splitting documents into chunks ===")
      for i, chunk in enumerate(chunks):
           chunked_documents.append({"id": f"{doc['id']}_chunk{i+1}", "text": chunk})
-
-#print(f"Split document into {len(chunked_documents)} chunks")
+# print(f"Split document into {len(chunked_documents)} chunks")
           
 # Function to generate embeddings using OpenAI
 def generate_embeddings(text):
@@ -75,5 +74,56 @@ def generate_embeddings(text):
 for doc in chunked_documents:
      print("=== Generating Embeddings... ===")
      doc["embedding"] = generate_embeddings(doc["text"])
+# print(doc["embedding"])
+     
+# Upsert documents with embededdings into Chroma
+for doc in chunked_documents:
+     print("=== Upserting document into Chroma... ===")
+     collection.upsert(
+          ids = [doc["id"]], documents = [doc["text"]], embeddings = [doc["embedding"]]
+     )
 
-print(doc["embedding"])
+# Function to query documents
+def query_documents(question, n_results = 2):
+     # query_embedding = generate_embedding(question) "Use this if the DB function doesn't use an embedding function under the hood"
+     results = collection.query(query_texts = question, n_results = n_results)
+
+     # Extract the relevant chunks
+     relevant_chunks = [doc for sublist in results["documents"] for doc in sublist]
+     print("=== Returning relevant Chunks ===")
+     return relevant_chunks
+
+def generate_response(question, relevant_chunks):
+     context = "\n\n".join(relevant_chunks)
+     prompt = (
+          "You are an assitant for question-answering tasks. Use the following pieces of "
+          "retrieved context to answer the question. If you don't know the answer, say that you "
+          "don't know. Use three sentences maximum and keep the answer concise."
+          "\n\nContext:\n" + context + "\n\nQuestion:\n" + question 
+     )
+
+     response = client.chat.completions.create(
+          model = "gpt-3.5-turbo",
+          messages = [
+               {
+                    "role": "system",
+                    "content": prompt,
+               },
+               {
+                    "role": "user",
+                    "content": question,
+               },
+          ],
+     )
+
+     answer = response.choices[0].message
+     return answer
+
+# Example query
+# query_documents("tell me about AI replacing TV writers strike.")
+# Example query and response generation
+question = "What are the updates with slack?"
+relevant_chunks = query_documents(question)
+answer = generate_response(question, relevant_chunks)
+
+print(answer)
